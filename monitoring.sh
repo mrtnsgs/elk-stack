@@ -50,19 +50,38 @@ cloneGit(){
 }
 
 installMonitoring(){
+    local REPO='' #Adicionar link github
+    local CONFPRO='conf/prometheus/prometheus.yml'
+    local CONFALRT='conf/alertmanager/config.yml'
 
     LOG "Instalando net-data" #porta 19999
     bash <(curl -Ss https://my-netdata.io/kickstart.sh)
 
+    LOG "Cloning git from github"
+    git clone $REPO
+
+
     LOG "Ajustando Slack"
-    echo "Insert the slack username: " ; read USERNAME
+    echo "Insert host IP address" ; read 
+    echo "Insert slack username: " ; read USERNAME
     echo "Insert slack channel: " ; read CHANNEL
-    echo "Insert the Incomming WebHook: " ; read INWBHK
+    echo "Insert Incomming WebHook: " ; read INWBHK
 
+    LOG "Setting ip in Prometheus config"
+    sed -i "s/YOUR_NETDATA_IP/$/g" $CONFPRO
 
+    LOG "Setting config for allert manager"
+    sed -i "s/USERNAME/$USENAME/g" $CONFALRT
+    sed -i "s/YOURCHANNEL/$CHANNEL/g" $CONFALRT
+    sed -i "s/WEBHOOK/$INWBHK" $INWBHK
 
     #Necessário utilizar docker-swarm caso for mais de um cluster
+    #LOG "Init Docker Swarm"
     #docker swarm init
+    
+    LOG "Deploying docker compose"
+    docker stack deploy -c docker-compose.yml monitoring
+
 }
 
 if ! is_root_user; then
@@ -95,7 +114,7 @@ while [[ -n "$1" ]]; do
             LOG "Error installing packages, check to proceed!"
         fi
         ;;
-        -z | --zabbix) echo "Not create yet, please use -h or --help for help" ;;
+        -z | --pro) echo "Not create yet, please use -h or --help for help" ;;
         *) echo "Invalid option, please use -h or --help to help" && exit 1 ;;
     esac
     shift
